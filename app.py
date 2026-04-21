@@ -9,57 +9,93 @@ st.set_page_config(page_title="Traductor Pro", layout="centered")
 # CSS para Interfaz de App Nativa (Minimalista)
 st.markdown("""
     <style>
-    /* Fondo oscuro y limpieza */
-    .stApp { background-color: #0E1117; }
-    header, footer, [data-testid="stHeader"] { visibility: hidden !important; display: none !important; }
+    /* 1. CONFIGURACIÓN DE FONDO Y RECORTE */
+    .stApp { 
+        background-color: #0E1117; 
+        overflow: hidden !important;
+    }
     
-    /* Contenedor tipo Tarjeta */
+    /* Ocultar elementos nativos (Plan A) */
+    header, footer, [data-testid="stHeader"], [data-testid="stStatusWidget"] { 
+        visibility: hidden !important; 
+        display: none !important; 
+    }
+    button[title="View fullscreen"] { display: none !important; }
+
+    /* 2. CONTENEDOR TIPO TARJETA Y TRUCO ANTI-ZÓCALO */
     .main .block-container {
         max-width: 450px !important;
-        padding-top: 2rem !important;
+        padding-top: 1.5rem !important;
+        /* Empujamos el contenido hacia abajo y estiramos el fondo */
+        padding-bottom: 120px !important; 
+        margin-bottom: -100px !important;
     }
 
-    /* Estilo de las burbujas */
-    .stCaption { color: #8E8E93 !important; font-size: 0.9rem !important; text-align: center; }
+    /* 3. ESTILO DE COMPONENTES (Glassmorphism) */
+    .stCaption { 
+        color: #8E8E93 !important; 
+        font-size: 0.85rem !important; 
+        text-align: center; 
+        margin-top: 5px;
+    }
     
     .chat-card {
         background: rgba(255, 255, 255, 0.05);
-        border-radius: 25px;
-        padding: 20px;
+        border-radius: 22px;
+        padding: 18px;
         border: 1px solid rgba(255, 255, 255, 0.1);
-        margin-bottom: 20px;
+        margin-bottom: 15px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
     }
 
     .trad-text {
         color: #007AFF;
-        font-size: 1.5rem;
+        font-size: 1.4rem;
         font-weight: 700;
         text-align: center;
-        margin: 10px 0;
+        margin: 8px 0;
+        line-height: 1.2;
     }
 
-    /* Botones Gigantes */
+    /* 4. BOTONES GIGANTES ADAPTADOS */
     div[data-testid="stHorizontalBlock"] {
-        background: rgba(0, 122, 255, 0.1);
-        border-radius: 50px;
-        padding: 10px;
-        margin: 15px 0;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 20px;
+        padding: 15px;
+        margin: 10px 0;
+        border: 1px solid rgba(255, 255, 255, 0.05);
     }
     
     .stButton>button {
         width: 100% !important;
-        height: 60px !important;
-        border-radius: 30px !important;
+        height: 65px !important;
+        border-radius: 18px !important;
         background-color: #007AFF !important;
-        font-weight: bold !important;
+        color: white !important;
+        font-size: 1.1rem !important;
+        font-weight: 700 !important;
         border: none !important;
+        transition: transform 0.1s;
+    }
+    
+    .stButton>button:active {
+        transform: scale(0.98);
+        background-color: #0056b3 !important;
     }
 
-    /* Selector de idioma */
+    /* 5. SELECTOR DE IDIOMA MINIMALISTA */
     .stSelectbox div[data-baseweb="select"] {
         background-color: #1C1C1E !important;
-        border-radius: 15px !important;
+        border: 1px solid #333 !important;
+        border-radius: 12px !important;
+        color: white !important;
     }
+    
+    /* Eliminar espaciado extra de dividers */
+    hr { margin: 1rem 0 !important; border-bottom: 1px solid rgba(255,255,255,0.1) !important; }
+    
+    /* Forzar que el zócalo de componentes (mic_recorder) sea invisible */
+    .stCustomComponentV1 { margin-bottom: -20px !important; }
     </style>
     """, unsafe_allow_html=True)
 
