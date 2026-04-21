@@ -14,43 +14,35 @@ st.set_page_config(
 # Estilos CSS avanzados para Mobile y UX
 st.markdown("""
     <style>
-    /* Forzar que las columnas no se apilen en móvil para mantener botones a la derecha */
-    [data-testid="column"] {
-        width: calc(100% - 1rem) !important;
-        flex: 1 1 auto !important;
-        min-width: 0px !important;
+    /* 1. Eliminar el ancho máximo y los márgenes laterales de Streamlit */
+    .block-container {
+        max-width: 100% !important;
+        padding-top: 1rem !important;
+        padding-bottom: 0rem !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
     }
-    div[data-testid="stHorizontalBlock"] {
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        align-items: center !important;
+
+    /* 2. Forzar que el contenedor principal ocupe todo el ancho */
+    .stAppViewMain {
+        width: 100% !important;
+    }
+
+    /* 3. Ajustar el espaciado de las columnas para que los botones queden bien al borde */
+    div[data-testid="column"] {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* 4. Ocultar la decoración superior (la línea de color que a veces aparece) */
+    [data-testid="stHeader"] {
+        display: none !important;
     }
     
-    /* Estilo de los botones de grabación */
-    .stButton>button { 
-        width: 80px !important; 
-        height: 80px !important; 
-        border-radius: 50% !important;
-        background-color: #007AFF !important;
-        color: white !important;
-        border: none !important;
-        box-shadow: 0 4px 15px rgba(0,122,255,0.3);
-        margin-left: auto;
+    /* 5. Si querés fondo negro total como en tu imagen */
+    .stApp {
+        background-color: #0E1117;
     }
-    
-    /* Burbujas de chat profesionales */
-    .chat-bubble {
-        padding: 15px 20px;
-        border-radius: 20px;
-        margin-bottom: 5px;
-        font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    }
-    .user-text { background-color: #F0F0F5; color: #1C1C1E; border-bottom-left-radius: 5px; }
-    .trans-text { background-color: #007AFF; color: white; font-weight: 500; font-size: 1.2rem; border-top-left-radius: 5px; }
-    
-    /* Etiqueta de idioma */
-    .lang-label { font-size: 0.8rem; color: #8E8E93; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
     </style>
     """, unsafe_allow_html=True)
 
