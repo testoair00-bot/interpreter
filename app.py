@@ -24,7 +24,7 @@ st.markdown("""
 
     /* 2. CONTENEDOR TIPO TARJETA Y TRUCO ANTI-ZÓCALO */
     .main .block-container {
-        max-width: 450px !important;
+        max-width: 950px !important;
         padding-top: 1.5rem !important;
         /* Empujamos el contenido hacia abajo y estiramos el fondo */
         padding-bottom: 120px !important; 
