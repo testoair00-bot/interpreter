@@ -6,7 +6,7 @@ import io
 # 1. Configuración Base
 st.set_page_config(page_title="Interprete Pro", layout="centered")
 
-# 2. CSS: Forzar línea única y espacio extra abajo
+# 2. CSS: Posicionamiento Absoluto para evitar colapsos
 st.markdown("""
     <style>
     .stApp { background-color: #0E1117; overflow: hidden !important; }
@@ -14,28 +14,19 @@ st.markdown("""
         visibility: hidden !important; display: none !important; 
     }
 
-    /* 300px de espacio abajo para que el mic flote libre */
+    /* Espacio masivo abajo para el Iframe */
     .main .block-container {
         max-width: 100% !important;
-        padding: 1rem 5% 300px 5% !important;
+        padding: 1.5rem 5% 350px 5% !important;
     }
 
-    /* FORZAR LÍNEA ÚNICA EN MÓVIL */
-    div[data-testid="stHorizontalBlock"] {
-        display: flex !important;
-        flex-direction: row !important; /* No permite que se apilen */
-        flex-wrap: nowrap !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        gap: 10px !important;
+    /* Contenedor relativo para posicionar el botón */
+    [data-testid="stVerticalBlock"] > div {
+        position: relative !important;
+        min-height: 100px;
     }
 
-    /* Ajuste de anchos para que el botón no se achique */
-    div[data-testid="column"] {
-        min-width: 0 !important;
-    }
-
-    /* Maxi-Botones Circulares */
+    /* ESTILO DE LOS BOTONES CIRCULARES */
     .stButton>button {
         border-radius: 50% !important;
         width: 80px !important;
@@ -44,28 +35,44 @@ st.markdown("""
         color: white !important;
         font-size: 2rem !important;
         box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+        position: absolute !important;
+        right: 0 !important;
+        top: 10px !important;
+        z-index: 1000 !important;
     }
 
-    /* Colores */
-    div[data-testid="column"]:nth-of-type(2) button[key="mic_ar"] { background-color: #007AFF !important; }
-    div[data-testid="column"]:nth-of-type(2) button[key="mic_ex"] { background-color: #FF3B30 !important; }
+    /* Márgenes para que el texto NO colapse ni choque con el botón */
+    .text-container {
+        margin-right: 100px !important;
+        min-height: 90px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
 
-    .right-label {
-        text-align: right;
+    /* Colores por Key */
+    button[key="mic_ar"] { background-color: #007AFF !important; }
+    button[key="mic_ex"] { background-color: #FF3B30 !important; }
+
+    .right-label-fix {
+        position: absolute;
+        right: 5px;
+        top: -15px;
         font-size: 0.7rem;
-        font-weight: 800;
-        margin-bottom: 5px;
+        font-weight: 900;
+        letter-spacing: 1px;
     }
 
     .chat-card {
         background: rgba(255, 255, 255, 0.08);
-        border-radius: 20px;
+        border-radius: 18px;
         padding: 15px;
-        border-left: 8px solid #007AFF;
-        margin-bottom: 10px;
+        border-left: 6px solid #007AFF;
+        margin-top: 5px;
     }
     
-    .trad-text { font-size: 1.4rem !important; font-weight: 800; }
+    .trad-text { font-size: 1.4rem !important; font-weight: 800; line-height: 1.1; }
+    hr { border: 0.1px solid #222; margin: 30px 0 !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -89,7 +96,7 @@ with c_h2: voz_sel = st.selectbox("", list(voces.keys()))
 info = config_idiomas[idioma_sel]
 voz_id = voces[voz_sel]
 
-def procesar_v5(audio_bytes, es_a_extranjero=True, card_color="#007AFF"):
+def procesar_final(audio_bytes, es_a_extranjero=True, card_color="#007AFF"):
     if not audio_bytes: return
     with st.spinner("..."):
         audio_file = io.BytesIO(audio_bytes); audio_file.name = "audio.mp3"
@@ -104,39 +111,30 @@ def procesar_v5(audio_bytes, es_a_extranjero=True, card_color="#007AFF"):
         
         st.markdown(f"""
         <div class="chat-card" style="border-left-color: {card_color};">
-            <div style="color: #666; font-size: 0.75rem;">"{trans.text}"</div>
+            <div style="color: #555; font-size: 0.7rem;">"{trans.text}"</div>
             <div class="trad-text" style="color: {card_color};">{trad}</div>
         </div>
         """, unsafe_allow_html=True)
         st.audio(speech.content, autoplay=True)
 
-# --- BLOQUES DE INTERFAZ ---
+# --- INTERFAZ SIN COLUMNAS (Para evitar colapsos) ---
 
-# BLOQUE 1: YO HABLO
-# Forzamos proporciones fijas para que no se apilen
-col_ar_txt, col_ar_btn = st.columns([0.7, 0.3])
+# BLOQUE 1: YO
+st.markdown(f"<div><span class='right-label-fix' style='color:#007AFF;'>🇦🇷 YO (ES)</span>", unsafe_allow_html=True)
+audio_ar = mic_recorder(start_prompt="🎙️", stop_prompt="⌛", key='mic_ar')
+st.markdown("<div class='text-container'>", unsafe_allow_html=True)
+if audio_ar:
+    procesar_final(audio_ar['bytes'], True, "#007AFF")
+else:
+    st.markdown("<p style='color:#333;'>Esperando audio propio...</p>", unsafe_allow_html=True)
+st.markdown("</div></div><hr>", unsafe_allow_html=True)
 
-with col_ar_btn:
-    st.markdown("<p class='right-label' style='color: #007AFF;'>🇦🇷 YO (ES)</p>", unsafe_allow_html=True)
-    audio_ar = mic_recorder(start_prompt="🎙️", stop_prompt="⌛", key='mic_ar')
-
-with col_ar_txt:
-    if audio_ar:
-        procesar_v5(audio_ar['bytes'], True, "#007AFF")
-    else:
-        st.markdown("<p style='color:#333; font-size:0.9rem;'>Esperando audio...</p>", unsafe_allow_html=True)
-
-st.markdown("<hr style='border: 0.5px solid #222; margin: 20px 0;'>", unsafe_allow_html=True)
-
-# BLOQUE 2: INTERLOCUTOR
-col_ex_txt, col_ex_btn = st.columns([0.7, 0.3])
-
-with col_ex_btn:
-    st.markdown(f"<p class='right-label' style='color: #FF3B30;'>🌐 EL ({info['label'][:3]})</p>", unsafe_allow_html=True)
-    audio_ex = mic_recorder(start_prompt="🎙️", stop_prompt="⌛", key='mic_ex')
-
-with col_ex_txt:
-    if audio_ex:
-        procesar_v5(audio_ex['bytes'], False, "#FF3B30")
-    else:
-        st.markdown("<p style='color:#333; font-size:0.9rem;'>Esperando audio...</p>", unsafe_allow_html=True)
+# BLOQUE 2: EL
+st.markdown(f"<div><span class='right-label-fix' style='color:#FF3B30;'>🌐 EL ({info['label'][:3]})</span>", unsafe_allow_html=True)
+audio_ex = mic_recorder(start_prompt="🎙️", stop_prompt="⌛", key='mic_ex')
+st.markdown("<div class='text-container'>", unsafe_allow_html=True)
+if audio_ex:
+    procesar_final(audio_ex['bytes'], False, "#FF3B30")
+else:
+    st.markdown(f"<p style='color:#333;'>Esperando audio de {info['label']}...</p>", unsafe_allow_html=True)
+st.markdown("</div></div>", unsafe_allow_html=True)
