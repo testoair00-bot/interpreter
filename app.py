@@ -24,11 +24,11 @@ st.markdown("""
 
     /* 2. CONTENEDOR TIPO TARJETA Y TRUCO ANTI-ZÓCALO */
     .main .block-container {
-        max-width: 950px !important;
-        padding-top: 1.5rem !important;
-        /* Empujamos el contenido hacia abajo y estiramos el fondo */
-        padding-bottom: 120px !important; 
-        margin-bottom: -100px !important;
+        max-width: 100% !important;
+        padding-left: 10% !important;  /* Le da aire a los costados */
+        padding-right: 10% !important;
+        padding-top: 2rem !important;
+        padding-bottom: 120px !important; /* Espacio para que el corte no tape botones */
     }
 
     /* 3. ESTILO DE COMPONENTES (Glassmorphism) */
