@@ -4,92 +4,78 @@ from streamlit_mic_recorder import mic_recorder
 import io
 
 # 1. Configuración Base
-st.set_page_config(page_title="Traductor Pro", layout="centered")
+st.set_page_config(page_title="Interprete Pro", layout="centered")
 
-# 2. CSS: Subida de elementos y habilitación de scroll vertical
+# 2. CSS: Scroll Real y Estilo WhatsApp
 st.markdown("""
     <style>
-    /* Reset de fondo y permitir scroll vertical suave */
-    .stApp { 
-        background-color: #0E1117; 
-        overflow-y: auto !important; 
-    }
+    .stApp { background-color: #0E1117; }
     header, footer, [data-testid="stHeader"] { visibility: hidden !important; height: 0; }
 
-    /* Contenedor: Menos padding arriba para ganar espacio */
+    /* Contenedor principal compacto */
     .main .block-container {
         max-width: 100% !important;
-        padding: 0.5rem 4% 100px 4% !important; /* 100px abajo es suficiente ahora */
+        padding: 0.5rem 4% 20px 4% !important;
     }
 
-    /* Título Ultra Compacto */
-    .header-title {
-        text-align: center;
-        color: #E9EDEF;
-        font-size: 1rem;
-        font-weight: 600;
-        margin-bottom: 5px;
-        opacity: 0.8;
+    /* AREA DE CHAT CON SCROLL REAL */
+    .chat-scroll-area {
+        height: 350px; /* Altura fija para forzar scroll */
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 10px;
+        background: rgba(255,255,255,0.02);
+        border-radius: 15px;
+        margin-bottom: 15px;
+        border: 1px solid #222;
     }
 
-    /* Burbujas de Chat WhatsApp Style */
+    /* Burbujas */
     .bubble {
         padding: 10px 14px;
         border-radius: 15px;
-        margin-bottom: 5px;
-        max-width: 90%;
+        max-width: 85%;
         line-height: 1.2;
-        animation: fadeIn 0.3s ease;
     }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .bubble-me { background-color: #005C4B; color: #E9EDEF; align-self: flex-start; border-left: 4px solid #00A884; }
+    .bubble-ex { background-color: #202C33; color: #E9EDEF; align-self: flex-end; border-right: 4px solid #FF3B30; text-align: right; }
 
-    .bubble-me { background-color: #005C4B; color: #E9EDEF; border-left: 4px solid #00A884; }
-    .bubble-ex { background-color: #202C33; color: #E9EDEF; border-right: 4px solid #FF3B30; }
+    .trad-text { font-size: 1rem; font-weight: 600; display: block; }
+    .orig-text { font-size: 0.7rem; opacity: 0.5; display: block; }
 
-    .trad-text { font-size: 1rem; font-weight: 600; }
-    .orig-text { font-size: 0.7rem; opacity: 0.5; }
-
-    /* Micro-Contenedores de Micrófono */
-    .mic-container {
-        position: relative;
-        height: 70px; /* Reducido de 85px */
-        margin-bottom: 5px;
+    /* Controles de Micrófono */
+    .mic-row {
         display: flex;
+        justify-content: space-between;
         align-items: center;
+        margin-top: 10px;
+        position: relative;
     }
-
-    /* Botones más pequeños para mobile */
+    .mic-wrap { position: relative; width: 70px; height: 70px; }
+    
     .stButton > button {
         border-radius: 50% !important;
-        width: 55px !important; /* Reducido para ganar aire */
-        height: 55px !important;
+        width: 65px !important;
+        height: 65px !important;
         border: none !important;
-        position: absolute !important;
-        right: 0;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.5);
     }
-    
     button[key="mic_ar"] { background-color: #00A884 !important; }
     button[key="mic_ex"] { background-color: #FF3B30 !important; }
 
-    .label-tag {
-        position: absolute;
-        right: 0;
-        top: -8px;
-        font-size: 0.6rem;
-        font-weight: bold;
-        opacity: 0.9;
-    }
+    .label-tag { font-size: 0.6rem; font-weight: bold; position: absolute; top: -12px; width: 100px; }
 
-    /* Selectores en una línea para ahorrar espacio vertical */
-    div[data-baseweb="select"] { height: 32px !important; font-size: 0.75rem !important; }
-    
-    /* Ocultar barra de scroll de Streamlit pero permitir desplazamiento */
-    ::-webkit-scrollbar { width: 0px; background: transparent; }
+    /* Ocultar barra de scroll estéticamente */
+    .chat-scroll-area::-webkit-scrollbar { width: 4px; }
+    .chat-scroll-area::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
     </style>
     """, unsafe_allow_html=True)
 
-# 3. Lógica (Manteniendo tu motor OpenAI)
+# 3. Lógica de Persistencia
+if 'history' not in st.session_state:
+    st.session_state.history = []
+
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 config_idiomas = {
@@ -98,19 +84,24 @@ config_idiomas = {
     "Portugués": {"prompt": "Portuguese", "label": "POR"},
     "Italiano": {"prompt": "Italian", "label": "ITA"}
 }
-voces = {"Fem": "nova", "Masc": "onyx"}
 
-st.markdown("<div class='header-title'>Traductor Digital</div>", unsafe_allow_html=True)
+# 4. Header y Selectores
+st.markdown("<div style='text-align:center; color:#E9EDEF; font-weight:600;'>Traductor Digital</div>", unsafe_allow_html=True)
 
-# Selectores en columnas para ahorrar 40px de altura
-c1, c2 = st.columns(2)
-with c1: idioma_sel = st.selectbox("", list(config_idiomas.keys()), label_visibility="collapsed")
-with c2: voz_sel = st.selectbox("", list(voces.keys()), label_visibility="collapsed")
+c1, c2, c3 = st.columns([1.5, 1, 1])
+with c1: 
+    idioma_sel = st.selectbox("", list(config_idiomas.keys()), label_visibility="collapsed")
+with c2: 
+    genero_sel = st.selectbox("", ["Voz Fem.", "Voz Masc."], index=0, label_visibility="collapsed")
+with c3:
+    if st.button("🗑️ Borrar"):
+        st.session_state.history = []
+        st.rerun()
 
 info = config_idiomas[idioma_sel]
-voz_id = voces[voz_sel]
+voz_id = "nova" if "Fem" in genero_sel else "onyx"
 
-def render_chat(audio_bytes, es_yo):
+def procesar_y_guardar(audio_bytes, es_yo):
     if not audio_bytes: return
     audio_file = io.BytesIO(audio_bytes); audio_file.name = "audio.mp3"
     trans = client.audio.transcriptions.create(model="whisper-1", file=audio_file)
@@ -122,31 +113,54 @@ def render_chat(audio_bytes, es_yo):
     trad = res.choices[0].message.content
     speech = client.audio.speech.create(model="tts-1", voice=voz_id, input=trad)
     
-    css_class = "bubble-me" if es_yo else "bubble-ex"
-    st.markdown(f"""
-    <div class="bubble {css_class}">
-        <span class="orig-text">"{trans.text}"</span><br>
-        <span class="trad-text">{trad}</span>
+    # Guardar en historial
+    st.session_state.history.append({
+        "es_yo": es_yo,
+        "orig": trans.text,
+        "trad": trad,
+        "audio": speech.content
+    })
+
+# --- RENDERIZADO DE INTERFAZ ---
+
+# Area de Chat (Scrollable)
+chat_html = '<div class="chat-scroll-area">'
+for msg in st.session_state.history:
+    side_class = "bubble-me" if msg["es_yo"] else "bubble-ex"
+    chat_html += f'''
+    <div class="bubble {side_class}">
+        <span class="orig-text">"{msg["orig"]}"</span>
+        <span class="trad-text">{msg["trad"]}</span>
     </div>
-    """, unsafe_allow_html=True)
-    st.audio(speech.content, autoplay=True)
+    '''
+chat_html += '</div>'
+st.markdown(chat_html, unsafe_allow_html=True)
 
-# --- INTERFAZ COMPACTA ---
+# Auto-reproducir el último audio si existe
+if st.session_state.history:
+    st.audio(st.session_state.history[-1]["audio"], autoplay=True)
 
-# Bloque YO (Subido y achicado)
-st.markdown("<div class='mic-container'>", unsafe_allow_html=True)
-st.markdown("<span class='label-tag' style='color:#00A884;'>🇦🇷 YO</span>", unsafe_allow_html=True)
-audio_ar = mic_recorder(start_prompt="🎙️", stop_prompt="⌛", key='mic_ar')
-st.markdown("<div style='width:80%'>", unsafe_allow_html=True)
-if audio_ar: render_chat(audio_ar['bytes'], True)
-st.markdown("</div></div>", unsafe_allow_html=True)
+# Controles de Micrófono (Fijos abajo)
+st.markdown("<div class='mic-row'>", unsafe_allow_html=True)
 
-st.markdown("<hr style='border:0.1px solid #222; margin: 10px 0;'>", unsafe_allow_html=True)
+# Botón YO (Izquierda)
+with st.container():
+    st.markdown("<div class='mic-wrap'><span class='label-tag' style='color:#00A884; left:0;'>🇦🇷 YO (ES)</span>", unsafe_allow_html=True)
+    audio_ar = mic_recorder(start_prompt="🎙️", stop_prompt="⌛", key='mic_ar')
+    st.markdown("</div>", unsafe_allow_html=True)
 
-# Bloque ÉL (Subido para que entre siempre)
-st.markdown("<div class='mic-container'>", unsafe_allow_html=True)
-st.markdown(f"<span class='label-tag' style='color:#FF3B30;'>🌐 {info['label']}</span>", unsafe_allow_html=True)
-audio_ex = mic_recorder(start_prompt="🎙️", stop_prompt="⌛", key='mic_ex')
-st.markdown("<div style='width:80%'>", unsafe_allow_html=True)
-if audio_ex: render_chat(audio_ex['bytes'], False)
-st.markdown("</div></div>", unsafe_allow_html=True)
+# Botón ÉL (Derecha)
+with st.container():
+    st.markdown(f"<div class='mic-wrap'><span class='label-tag' style='color:#FF3B30; right:0; text-align:right;'>🌐 {info['label']}</span>", unsafe_allow_html=True)
+    audio_ex = mic_recorder(start_prompt="🎙️", stop_prompt="⌛", key='mic_ex')
+    st.markdown("</div>", unsafe_allow_html=True)
+
+st.markdown("</div>", unsafe_allow_html=True)
+
+# Procesamiento después del render para evitar lags
+if audio_ar: 
+    procesar_y_guardar(audio_ar['bytes'], True)
+    st.rerun()
+if audio_ex: 
+    procesar_y_guardar(audio_ex['bytes'], False)
+    st.rerun()
