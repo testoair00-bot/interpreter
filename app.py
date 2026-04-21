@@ -6,39 +6,21 @@ import io
 # 1. Configuración Base
 st.set_page_config(page_title="Interprete Pro", layout="centered")
 
-# 2. CSS Avanzado: Animaciones, Colores y Layout a la derecha
+# 2. CSS: Botones a la derecha, colores y animaciones
 st.markdown("""
     <style>
-    /* Fondo y Reset */
     .stApp { background-color: #0E1117; overflow: hidden !important; }
     header, footer, [data-testid="stHeader"], [data-testid="stStatusWidget"] { 
         visibility: hidden !important; display: none !important; 
     }
 
-    /* Contenedor Principal */
+    /* Contenedor Principal con espacio para el recorte inferior */
     .main .block-container {
         max-width: 100% !important;
-        padding: 2rem 8% 150px 8% !important;
+        padding: 2rem 6% 160px 6% !important;
     }
 
-    /* Tarjetas de Chat */
-    .chat-card {
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 20px;
-        padding: 15px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        margin-bottom: 10px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    }
-    .trad-text {
-        color: #007AFF;
-        font-size: 1.3rem;
-        font-weight: 700;
-        text-align: center;
-        margin-top: 5px;
-    }
-
-    /* Alineación de Botones a la Derecha */
+    /* Forzar alineación horizontal: Texto izquierda (3), Botón derecha (1) */
     div[data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
@@ -49,47 +31,44 @@ st.markdown("""
         margin: 10px 0 !important;
     }
 
-    /* Estilos de Botones Circulares */
+    /* Estilo de los Botones Circulares */
     .stButton>button {
         border-radius: 50% !important;
-        width: 70px !important;
-        height: 70px !important;
+        width: 75px !important;
+        height: 75px !important;
         border: none !important;
         color: white !important;
-        font-size: 1.5rem !important;
-        transition: all 0.3s ease;
         box-shadow: 0 4px 15px rgba(0,0,0,0.4);
     }
 
-    /* Colores por ID (vía el texto del botón o selectores específicos) */
-    /* YO HABLO (Azul) */
-    div.stButton > button:first-child[kind="primary"], 
-    div.stButton > button:contains("🎙️") { background-color: #007AFF !important; }
+    /* Color YO HABLO (Arriba - Azul) */
+    div[data-testid="column"]:nth-of-type(2) button[key="mic_ar"] {
+        background-color: #007AFF !important;
+    }
+
+    /* Color ÉL HABLA (Abajo - Rojo) */
+    div[data-testid="column"]:nth-of-type(2) button[key="mic_ex"] {
+        background-color: #FF3B30 !important;
+    }
+
+    /* Tarjetas de Resultado */
+    .chat-card {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        padding: 15px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        margin-top: 10px;
+    }
     
-    /* Animación de Pulso (Escuchando) */
-    @keyframes pulse-blue {
-        0% { box-shadow: 0 0 0 0 rgba(0, 122, 255, 0.7); }
-        70% { box-shadow: 0 0 0 15px rgba(0, 122, 255, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(0, 122, 255, 0); }
-    }
-    @keyframes pulse-red {
-        0% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7); }
-        70% { box-shadow: 0 0 0 15px rgba(255, 59, 48, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
+    .trad-text {
+        font-size: 1.3rem;
+        font-weight: 700;
+        text-align: center;
+        margin-top: 5px;
     }
 
-    /* Aplicación de colores y animaciones según la key */
-    div[data-testid="stColumn"]:has(button[key="ar"]) button { background-color: #007AFF !important; }
-    div[data-testid="stColumn"]:has(button[key="ex"]) button { background-color: #FF3B30 !important; }
-
-    /* Forzar que el audio sea visible */
-    stAudio { margin-top: 10px !important; width: 100% !important; }
-
-    /* Selector de Idioma */
-    .stSelectbox div[data-baseweb="select"] {
-        background-color: #1C1C1E !important;
-        border-radius: 12px !important;
-    }
+    /* Ajuste de Audio */
+    stAudio { width: 100% !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -103,7 +82,7 @@ config_idiomas = {
     "Italiano": {"prompt": "Italian", "label": "ITALIANO"}
 }
 
-st.markdown("<h3 style='text-align: center; color: white; margin-bottom: 0;'>Interprete Digital</h3>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: white;'>Interprete Digital</h3>", unsafe_allow_html=True)
 idioma_sel = st.selectbox("", list(config_idiomas.keys()))
 info = config_idiomas[idioma_sel]
 
@@ -112,7 +91,6 @@ def procesar_v2(audio_bytes, es_a_extranjero=True, card_color="#007AFF"):
     with st.spinner("..."):
         audio_file = io.BytesIO(audio_bytes)
         audio_file.name = "audio.mp3"
-        
         trans = client.audio.transcriptions.create(model="whisper-1", file=audio_file)
         
         sys_msg = f"Translate to {info['prompt']}" if es_a_extranjero else "Traducí al español de Argentina (voseo)."
@@ -131,28 +109,32 @@ def procesar_v2(audio_bytes, es_a_extranjero=True, card_color="#007AFF"):
         """, unsafe_allow_html=True)
         st.audio(speech.content, autoplay=True)
 
-# --- BLOQUES DE INTERACCIÓN (Botones a la derecha) ---
+# --- BLOQUES DE INTERFÁZ ---
 
-# BLOQUE YO (ARGENTINA)
-st.markdown("<p style='font-size:0.7rem; color: #8E8E93; margin-bottom: -10px;'>🇦🇷 YO HABLO</p>", unsafe_allow_html=True)
+# 1. BLOQUE SUPERIOR: YO HABLO (AR)
+st.markdown("<p style='font-size:0.75rem; color: #007AFF; font-weight: bold;'>🇦🇷 YO HABLO</p>", unsafe_allow_html=True)
 col_ar_txt, col_ar_btn = st.columns([3, 1])
+
 with col_ar_btn:
-    audio_ar = mic_recorder(start_prompt="🎙️", stop_prompt="⌛", key='ar')
+    audio_ar = mic_recorder(start_prompt="🎙️", stop_prompt="⌛", key='mic_ar')
+
 with col_ar_txt:
     if audio_ar:
         procesar_v2(audio_ar['bytes'], True, "#007AFF")
     else:
-        st.caption("Presioná el círculo azul")
+        st.caption("Tocá el botón azul para hablar")
 
-st.write("") # Espaciador
+st.divider()
 
-# BLOQUE ÉL (EXTRANJERO)
-st.markdown(f"<p style='font-size:0.7rem; color: #8E8E93; margin-bottom: -10px;'>🌐 ÉL HABLA ({info['label']})</p>", unsafe_allow_html=True)
+# 2. BLOQUE INFERIOR: ÉL HABLA (EXTRANJERO)
+st.markdown(f"<p style='font-size:0.75rem; color: #FF3B30; font-weight: bold;'>🌐 ÉL HABLA ({info['label']})</p>", unsafe_allow_html=True)
 col_ex_txt, col_ex_btn = st.columns([3, 1])
+
 with col_ex_btn:
-    audio_ex = mic_recorder(start_prompt="🎙️", stop_prompt="⌛", key='ex')
+    audio_ex = mic_recorder(start_prompt="🎙️", stop_prompt="⌛", key='mic_ex')
+
 with col_ex_txt:
     if audio_ex:
         procesar_v2(audio_ex['bytes'], False, "#FF3B30")
     else:
-        st.caption(f"Presioná el círculo rojo")
+        st.caption(f"Esperando {info['label']}... (Botón Rojo)")
