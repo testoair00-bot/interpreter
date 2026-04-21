@@ -66,8 +66,8 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-client = OpenAI(api_key="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")
 
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 # --- DICCIONARIO DE IDIOMAS PROFESIONAL ---
 config_idiomas = {
     "Inglés": {"prompt": "English", "code": "EN", "btn": "Tap to Speak", "label": "English"},
