@@ -6,72 +6,68 @@ import io
 # 1. Configuración Base
 st.set_page_config(page_title="Interprete Pro", layout="centered")
 
-# 2. CSS: Scroll dinámico y fijación de controles
+# 2. CSS: Estilo Chat y Control de Scroll
 st.markdown("""
     <style>
     .stApp { background-color: #0E1117; }
     header, footer, [data-testid="stHeader"] { visibility: hidden !important; height: 0; }
 
-    /* Contenedor principal */
     .main .block-container {
         max-width: 100% !important;
         padding: 1rem 5% 20px 5% !important;
-        display: flex;
-        flex-direction: column;
     }
 
-    /* AREA DE CHAT: Ocupa el espacio disponible sin tapar los mics */
+    /* AREA DE CHAT: Altura fija y scroll */
     .chat-scroll-area {
-        height: 50vh; /* Usa el 50% de la altura de la pantalla */
+        height: 45vh;
         overflow-y: auto;
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 12px;
         padding: 15px;
         background: rgba(255,255,255,0.03);
-        border-radius: 20px;
-        border: 1px solid #333;
+        border-radius: 15px;
         margin-bottom: 20px;
+        border: 1px solid #333;
     }
 
-    /* Burbujas tipo WhatsApp */
-    .bubble { padding: 12px 16px; border-radius: 18px; max-width: 80%; animation: fadeIn 0.3s; }
+    /* Burbujas */
+    .bubble { padding: 12px; border-radius: 15px; max-width: 85%; animation: fadeIn 0.3s; line-height: 1.3; }
     .bubble-me { background-color: #005C4B; color: #E9EDEF; align-self: flex-start; border-left: 5px solid #00A884; }
     .bubble-ex { background-color: #202C33; color: #E9EDEF; align-self: flex-end; border-right: 5px solid #FF3B30; text-align: right; }
 
-    .trad-text { font-size: 1.1rem; font-weight: 700; display: block; }
-    .orig-text { font-size: 0.8rem; opacity: 0.5; display: block; }
+    .trad-text { font-size: 1.1rem; font-weight: 700; display: block; margin-top: 4px; }
+    .orig-text { font-size: 0.8rem; opacity: 0.5; display: block; font-style: italic; }
 
-    /* Fila de Micrófonos: Siempre visibles abajo */
+    /* Controles de Micrófono */
     .mic-row {
         display: flex;
         justify-content: space-around;
         align-items: center;
-        padding-top: 10px;
-        border-top: 1px solid #222;
+        padding-top: 15px;
+        background: #0E1117;
     }
     
     .stButton > button {
         border-radius: 50% !important;
-        width: 70px !important;
-        height: 70px !important;
+        width: 75px !important;
+        height: 75px !important;
         border: none !important;
-        font-size: 1.8rem !important;
     }
     button[key="mic_ar"] { background-color: #007AFF !important; }
     button[key="mic_ex"] { background-color: #FF3B30 !important; }
 
-    .label-tag { font-size: 0.7rem; font-weight: bold; text-align: center; margin-bottom: 5px; }
-
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    .label-tag { font-size: 0.75rem; font-weight: bold; text-align: center; margin-bottom: 8px; }
+    
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
     """, unsafe_allow_html=True)
 
-# 3. Estado de la Sesión (Persistencia y control de bucle)
+# 3. Estado de la Sesión
 if 'history' not in st.session_state:
     st.session_state.history = []
-if 'last_processed_id' not in st.session_state:
-    st.session_state.last_processed_id = None
+if 'last_audio_processed' not in st.session_state:
+    st.session_state.last_audio_processed = None
 
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
@@ -82,87 +78,90 @@ config_idiomas = {
     "Italiano": {"prompt": "Italian", "label": "ITA"}
 }
 
-# 4. Cabecera y Configuración
-st.markdown("<h3 style='text-align:center; color:white; margin-top:-20px;'>Interprete Pro</h3>", unsafe_allow_html=True)
+# 4. Cabecera
+st.markdown("<h3 style='text-align:center; color:white; margin-top:-15px;'>Interprete Digital</h3>", unsafe_allow_html=True)
 
 c1, c2, c3 = st.columns([1.5, 1, 1])
 with c1: 
     idioma_sel = st.selectbox("", list(config_idiomas.keys()), label_visibility="collapsed")
 with c2: 
-    # Voz Masculina por defecto (index=1)
-    genero_sel = st.selectbox("", ["Voz Femenina", "Voz Masculina"], index=1, label_visibility="collapsed")
+    # Voz Masculina por defecto
+    genero_sel = st.selectbox("", ["Femenina", "Masculina"], index=1, label_visibility="collapsed")
 with c3:
-    if st.button("🗑️ Limpiar"):
+    if st.button("🗑️"):
         st.session_state.history = []
-        st.session_state.last_processed_id = None
+        st.session_state.last_audio_processed = None
         st.rerun()
 
 info = config_idiomas[idioma_sel]
-voz_id = "onyx" if "Masc" in genero_sel else "nova"
+voz_id = "onyx" if genero_sel == "Masculina" else "nova"
 
-# 5. Función de procesamiento (Lógica anti-bucle)
-def procesar_audio(audio_data, es_yo):
-    # Generar un ID único basado en el tamaño de los bytes para evitar repetir el mismo audio
+# 5. Lógica de Procesamiento
+def procesar(audio_data, es_yo):
+    # Evitar doble procesamiento si el ID es igual
     audio_id = hash(audio_data['bytes'])
-    if st.session_state.last_processed_id == audio_id:
+    if st.session_state.last_audio_processed == audio_id:
         return
 
     with st.spinner("..."):
-        audio_file = io.BytesIO(audio_data['bytes']); audio_file.name = "audio.mp3"
+        audio_file = io.BytesIO(audio_data['bytes'])
+        audio_file.name = "audio.mp3"
+        
+        # Transcripción
         trans = client.audio.transcriptions.create(model="whisper-1", file=audio_file)
         
-        sys_msg = f"Translate to {info['prompt']}" if es_yo else "Traducí al español de Argentina (voseo)."
+        # Traducción
+        sys_prompt = f"Translate to {info['prompt']}. Just text." if es_yo else "Traducí al español de Argentina (usá voseo). Solo texto."
         res = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[{"role": "system", "content": f"{sys_msg}. Solo texto."}, {"role": "user", "content": trans.text}]
+            messages=[{"role": "system", "content": sys_prompt}, {"role": "user", "content": trans.text}]
         )
-        trad = res.choices[0].message.content
-        speech = client.audio.speech.create(model="tts-1", voice=voz_id, input=trad)
+        traducido = res.choices[0].message.content
         
-        # Guardar en historial y marcar como procesado
+        # Voz (TTS)
+        audio_res = client.audio.speech.create(model="tts-1", voice=voz_id, input=traducido)
+        
+        # Guardar
         st.session_state.history.append({
             "es_yo": es_yo,
             "orig": trans.text,
-            "trad": trad,
-            "audio": speech.content
+            "trad": traducido,
+            "audio_bytes": audio_res.content
         })
-        st.session_state.last_processed_id = audio_id
+        st.session_state.last_audio_processed = audio_id
         st.rerun()
 
-# --- INTERFAZ ---
+# --- RENDERIZADO ---
 
-# Area de Chat con Scroll
-chat_container = st.empty()
-with chat_container.container():
-    chat_html = '<div class="chat-scroll-area">'
-    for msg in st.session_state.history:
-        side = "bubble-me" if msg["es_yo"] else "bubble-ex"
-        chat_html += f'''
-        <div class="bubble {side}">
-            <span class="orig-text">"{msg["orig"]}"</span>
-            <span class="trad-text">{msg["trad"]}</span>
-        </div>
-        '''
-    chat_html += '</div>'
-    st.markdown(chat_html, unsafe_allow_html=True)
+# Area de Chat
+chat_html = '<div class="chat-scroll-area">'
+for msg in st.session_state.history:
+    clase = "bubble-me" if msg["es_yo"] else "bubble-ex"
+    chat_html += f'''
+    <div class="bubble {clase}">
+        <span class="orig-text">"{msg["orig"]}"</span>
+        <span class="trad-text">{msg["trad"]}</span>
+    </div>
+    '''
+chat_html += '</div>'
+st.markdown(chat_html, unsafe_allow_html=True)
 
-# Reproductor de audio automático del último mensaje
+# Reproductor del último mensaje (Permite repetir con Play)
 if st.session_state.history:
-    st.audio(st.session_state.history[-1]["audio"], autoplay=True)
+    st.audio(st.session_state.history[-1]["audio_bytes"], autoplay=True)
 
-# Controles inferiores (Fijos)
+# Controles de Micrófono
 st.markdown("<div class='mic-row'>", unsafe_allow_html=True)
+col_l, col_r = st.columns(2)
 
-col_yo, col_el = st.columns(2)
-
-with col_yo:
-    st.markdown("<p class='label-tag' style='color:#007AFF;'>🇦🇷 YO (ES)</p>", unsafe_allow_html=True)
+with col_l:
+    st.markdown("<p class='label-tag' style='color:#007AFF;'>🇦🇷 YO</p>", unsafe_allow_html=True)
     audio_yo = mic_recorder(start_prompt="🎙️", stop_prompt="⌛", key='mic_ar')
-    if audio_yo: procesar_audio(audio_yo, True)
+    if audio_yo: procesar(audio_yo, True)
 
-with col_el:
-    st.markdown(f"<p class='label-tag' style='color:#FF3B30;'>🌐 EL ({info['label']})</p>", unsafe_allow_html=True)
+with col_r:
+    st.markdown(f"<p class='label-tag' style='color:#FF3B30;'>🌐 {info['label']}</p>", unsafe_allow_html=True)
     audio_el = mic_recorder(start_prompt="🎙️", stop_prompt="⌛", key='mic_ex')
-    if audio_el: procesar_audio(audio_el, False)
+    if audio_el: procesar(audio_el, False)
 
 st.markdown("</div>", unsafe_allow_html=True)
