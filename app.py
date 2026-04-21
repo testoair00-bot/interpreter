@@ -3,103 +3,97 @@ from openai import OpenAI
 from streamlit_mic_recorder import mic_recorder
 import io
 
-# Configuración Base
-st.set_page_config(page_title="Traductor Pro", layout="centered")
+# 1. Configuración Base
+st.set_page_config(page_title="Interprete Pro", layout="centered")
 
-# CSS para Interfaz de App Nativa (Minimalista)
+# 2. CSS Avanzado: Animaciones, Colores y Layout a la derecha
 st.markdown("""
     <style>
-    /* 1. CONFIGURACIÓN DE FONDO Y RECORTE */
-    .stApp { 
-        background-color: #0E1117; 
-        overflow: hidden !important;
-    }
-    
-    /* Ocultar elementos nativos (Plan A) */
+    /* Fondo y Reset */
+    .stApp { background-color: #0E1117; overflow: hidden !important; }
     header, footer, [data-testid="stHeader"], [data-testid="stStatusWidget"] { 
-        visibility: hidden !important; 
-        display: none !important; 
+        visibility: hidden !important; display: none !important; 
     }
-    button[title="View fullscreen"] { display: none !important; }
 
-    /* 2. CONTENEDOR TIPO TARJETA Y TRUCO ANTI-ZÓCALO */
+    /* Contenedor Principal */
     .main .block-container {
         max-width: 100% !important;
-        padding-left: 10% !important;  /* Le da aire a los costados */
-        padding-right: 10% !important;
-        padding-top: 2rem !important;
-        padding-bottom: 120px !important; /* Espacio para que el corte no tape botones */
+        padding: 2rem 8% 150px 8% !important;
     }
 
-    /* 3. ESTILO DE COMPONENTES (Glassmorphism) */
-    .stCaption { 
-        color: #8E8E93 !important; 
-        font-size: 0.85rem !important; 
-        text-align: center; 
-        margin-top: 5px;
-    }
-    
+    /* Tarjetas de Chat */
     .chat-card {
         background: rgba(255, 255, 255, 0.05);
-        border-radius: 22px;
-        padding: 18px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        margin-bottom: 15px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-    }
-
-    .trad-text {
-        color: #007AFF;
-        font-size: 1.4rem;
-        font-weight: 700;
-        text-align: center;
-        margin: 8px 0;
-        line-height: 1.2;
-    }
-
-    /* 4. BOTONES GIGANTES ADAPTADOS */
-    div[data-testid="stHorizontalBlock"] {
-        background: rgba(255, 255, 255, 0.03);
         border-radius: 20px;
         padding: 15px;
-        margin: 10px 0;
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     }
-    
-    .stButton>button {
-        width: 100% !important;
-        height: 65px !important;
-        border-radius: 18px !important;
-        background-color: #007AFF !important;
-        color: white !important;
-        font-size: 1.1rem !important;
-        font-weight: 700 !important;
-        border: none !important;
-        transition: transform 0.1s;
-    }
-    
-    .stButton>button:active {
-        transform: scale(0.98);
-        background-color: #0056b3 !important;
+    .trad-text {
+        color: #007AFF;
+        font-size: 1.3rem;
+        font-weight: 700;
+        text-align: center;
+        margin-top: 5px;
     }
 
-    /* 5. SELECTOR DE IDIOMA MINIMALISTA */
+    /* Alineación de Botones a la Derecha */
+    div[data-testid="stHorizontalBlock"] {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 25px;
+        padding: 10px 15px !important;
+        margin: 10px 0 !important;
+    }
+
+    /* Estilos de Botones Circulares */
+    .stButton>button {
+        border-radius: 50% !important;
+        width: 70px !important;
+        height: 70px !important;
+        border: none !important;
+        color: white !important;
+        font-size: 1.5rem !important;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    }
+
+    /* Colores por ID (vía el texto del botón o selectores específicos) */
+    /* YO HABLO (Azul) */
+    div.stButton > button:first-child[kind="primary"], 
+    div.stButton > button:contains("🎙️") { background-color: #007AFF !important; }
+    
+    /* Animación de Pulso (Escuchando) */
+    @keyframes pulse-blue {
+        0% { box-shadow: 0 0 0 0 rgba(0, 122, 255, 0.7); }
+        70% { box-shadow: 0 0 0 15px rgba(0, 122, 255, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(0, 122, 255, 0); }
+    }
+    @keyframes pulse-red {
+        0% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7); }
+        70% { box-shadow: 0 0 0 15px rgba(255, 59, 48, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
+    }
+
+    /* Aplicación de colores y animaciones según la key */
+    div[data-testid="stColumn"]:has(button[key="ar"]) button { background-color: #007AFF !important; }
+    div[data-testid="stColumn"]:has(button[key="ex"]) button { background-color: #FF3B30 !important; }
+
+    /* Forzar que el audio sea visible */
+    stAudio { margin-top: 10px !important; width: 100% !important; }
+
+    /* Selector de Idioma */
     .stSelectbox div[data-baseweb="select"] {
         background-color: #1C1C1E !important;
-        border: 1px solid #333 !important;
         border-radius: 12px !important;
-        color: white !important;
     }
-    
-    /* Eliminar espaciado extra de dividers */
-    hr { margin: 1rem 0 !important; border-bottom: 1px solid rgba(255,255,255,0.1) !important; }
-    
-    /* Forzar que el zócalo de componentes (mic_recorder) sea invisible */
-    .stCustomComponentV1 { margin-bottom: -20px !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# Inicialización
+# 3. Inicialización
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 config_idiomas = {
@@ -109,41 +103,56 @@ config_idiomas = {
     "Italiano": {"prompt": "Italian", "label": "ITALIANO"}
 }
 
-# --- INTERFAZ CENTRALIZADA ---
-st.markdown("<h2 style='text-align: center; color: white;'>Interprete Digital</h2>", unsafe_allow_html=True)
-
+st.markdown("<h3 style='text-align: center; color: white; margin-bottom: 0;'>Interprete Digital</h3>", unsafe_allow_html=True)
 idioma_sel = st.selectbox("", list(config_idiomas.keys()))
 info = config_idiomas[idioma_sel]
 
-def procesar_v2(audio_bytes, es_a_extranjero=True):
+def procesar_v2(audio_bytes, es_a_extranjero=True, card_color="#007AFF"):
     if not audio_bytes: return
-    audio_file = io.BytesIO(audio_bytes)
-    audio_file.name = "audio.mp3"
-    
-    trans = client.audio.transcriptions.create(model="whisper-1", file=audio_file)
-    
-    sys_msg = f"Translate to {info['prompt']}" if es_a_extranjero else "Traducí al español de Argentina (voseo)."
-    res = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "system", "content": f"{sys_msg}. Solo texto."}, {"role": "user", "content": trans.text}]
-    )
-    trad = res.choices[0].message.content
-    speech = client.audio.speech.create(model="tts-1", voice="nova", input=trad)
-    
-    # Mostrar Resultado en Tarjeta
-    st.markdown(f"""
-    <div class="chat-card">
-        <div style="color: grey; font-size: 0.8rem; text-align: center;">DICE: "{trans.text}"</div>
-        <div class="trad-text">{trad}</div>
-    </div>
-    """, unsafe_allow_html=True)
-    st.audio(speech.content, autoplay=True)
+    with st.spinner("..."):
+        audio_file = io.BytesIO(audio_bytes)
+        audio_file.name = "audio.mp3"
+        
+        trans = client.audio.transcriptions.create(model="whisper-1", file=audio_file)
+        
+        sys_msg = f"Translate to {info['prompt']}" if es_a_extranjero else "Traducí al español de Argentina (voseo)."
+        res = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "system", "content": f"{sys_msg}. Solo texto."}, {"role": "user", "content": trans.text}]
+        )
+        trad = res.choices[0].message.content
+        speech = client.audio.speech.create(model="tts-1", voice="nova", input=trad)
+        
+        st.markdown(f"""
+        <div class="chat-card" style="border-left: 5px solid {card_color};">
+            <div style="color: #8E8E93; font-size: 0.75rem; text-align: center;">"{trans.text}"</div>
+            <div class="trad-text" style="color: {card_color};">{trad}</div>
+        </div>
+        """, unsafe_allow_html=True)
+        st.audio(speech.content, autoplay=True)
 
-# Botones de Acción
-st.markdown("<p class='lang-label'>🇦🇷 YO HABLO</p>", unsafe_allow_html=True)
-audio_ar = mic_recorder(start_prompt="HABLAR (ESPAÑOL)", stop_prompt="PROCESANDO...", key='ar')
-if audio_ar: procesar_v2(audio_ar['bytes'], True)
+# --- BLOQUES DE INTERACCIÓN (Botones a la derecha) ---
 
-st.markdown(f"<p class='lang-label'>🌐 ÉL HABLA ({info['label']})</p>", unsafe_allow_html=True)
-audio_ex = mic_recorder(start_prompt=f"HABLAR ({info['label']})", stop_prompt="PROCESANDO...", key='ex')
-if audio_ex: procesar_v2(audio_ex['bytes'], False)
+# BLOQUE YO (ARGENTINA)
+st.markdown("<p style='font-size:0.7rem; color: #8E8E93; margin-bottom: -10px;'>🇦🇷 YO HABLO</p>", unsafe_allow_html=True)
+col_ar_txt, col_ar_btn = st.columns([3, 1])
+with col_ar_btn:
+    audio_ar = mic_recorder(start_prompt="🎙️", stop_prompt="⌛", key='ar')
+with col_ar_txt:
+    if audio_ar:
+        procesar_v2(audio_ar['bytes'], True, "#007AFF")
+    else:
+        st.caption("Presioná el círculo azul")
+
+st.write("") # Espaciador
+
+# BLOQUE ÉL (EXTRANJERO)
+st.markdown(f"<p style='font-size:0.7rem; color: #8E8E93; margin-bottom: -10px;'>🌐 ÉL HABLA ({info['label']})</p>", unsafe_allow_html=True)
+col_ex_txt, col_ex_btn = st.columns([3, 1])
+with col_ex_btn:
+    audio_ex = mic_recorder(start_prompt="🎙️", stop_prompt="⌛", key='ex')
+with col_ex_txt:
+    if audio_ex:
+        procesar_v2(audio_ex['bytes'], False, "#FF3B30")
+    else:
+        st.caption(f"Presioná el círculo rojo")
