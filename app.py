@@ -14,68 +14,54 @@ st.set_page_config(
 # Estilos CSS avanzados para Mobile y UX
 st.markdown("""
     <style>
-    /* Reset total de márgenes para Full Screen */
-    .block-container {
-        max-width: 100% !important;
-        padding: 1rem !important;
-        padding-bottom: 0 !important;
+    /* 1. OCULTAR FOOTER Y ELEMENTOS DE MARCA TOTALMENTE */
+    footer {visibility: hidden !important;}
+    #MainMenu {visibility: hidden !important;}
+    header {visibility: hidden !important;}
+    
+    /* Eliminar la barra inferior de 'Built with Streamlit' */
+    .stCustomComponentV1 iframe {
+        margin-bottom: -50px !important;
     }
     
-    /* Ocultar elementos de Streamlit (Header, Footer, Menu, Fullscreen button) */
-    header, footer, [data-testid="stHeader"], [data-testid="stStatusWidget"] {
-        visibility: hidden !important;
-        display: none !important;
-    }
-    button[title="View fullscreen"] {
+    /* Eliminar el botón de Fullscreen y la barra de estado de abajo */
+    [data-testid="stStatusWidget"], [data-testid="stConnectionStatus"] {
         display: none !important;
     }
 
-    /* Fondo oscuro profesional */
+    /* OCULTAR EL BOTÓN DE FULLSCREEN ESPECÍFICO */
+    button[title="View fullscreen"] {
+        display: none !important;
+    }
+    
+    /* Eliminar cualquier padding extra al final de la página */
+    .main .block-container {
+        padding-bottom: 0px !important;
+        margin-bottom: -20px !important;
+    }
+
+    /* 2. REFORZAR FULL WIDTH */
+    .block-container {
+        max-width: 100% !important;
+        padding: 1rem !important;
+    }
+    
     .stApp {
         background-color: #0E1117;
     }
 
-    /* Forzar que las columnas NO se apilen en móvil (Botón siempre a la derecha) */
+    /* 3. ESTILO DE BOTONES Y COLUMNAS (Mantiene el micro a la derecha) */
     div[data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
-        flex-wrap: nowrap !important;
         align-items: center !important;
-        gap: 0.5rem !important;
     }
-    [data-testid="column"] {
-        width: auto !important;
-        flex: 1 1 auto !important;
-    }
-
-    /* Estilo de los botones de micrófono (Circulares y Azules) */
+    
     .stButton>button { 
-        width: 75px !important; 
-        height: 75px !important; 
+        width: 70px !important; 
+        height: 70px !important; 
         border-radius: 50% !important;
         background-color: #007AFF !important;
-        color: white !important;
-        border: none !important;
-        box-shadow: 0 4px 15px rgba(0,122,255,0.3);
-    }
-    
-    /* Burbujas de texto */
-    .bubble {
-        padding: 15px 20px;
-        border-radius: 18px;
-        margin-bottom: 8px;
-        font-family: 'Segoe UI', sans-serif;
-    }
-    .user-text { background-color: #1C1C1E; color: #E5E5EA; border-left: 4px solid #8E8E93; }
-    .trans-text { background-color: #007AFF; color: white; font-weight: 600; font-size: 1.1rem; }
-    
-    /* Etiquetas de idioma */
-    .lang-label { 
-        font-size: 0.75rem; 
-        color: #8E8E93; 
-        margin-top: 10px;
-        letter-spacing: 1.5px;
-        text-transform: uppercase;
     }
     </style>
     """, unsafe_allow_html=True)
