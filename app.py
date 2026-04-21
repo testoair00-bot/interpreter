@@ -6,101 +6,90 @@ import io
 # 1. Configuración Base
 st.set_page_config(page_title="Traductor Pro", layout="centered")
 
-# 2. CSS: Estilo WhatsApp, Compacto y Animado
+# 2. CSS: Subida de elementos y habilitación de scroll vertical
 st.markdown("""
     <style>
-    .stApp { background-color: #0E1117; overflow: hidden !important; }
+    /* Reset de fondo y permitir scroll vertical suave */
+    .stApp { 
+        background-color: #0E1117; 
+        overflow-y: auto !important; 
+    }
     header, footer, [data-testid="stHeader"] { visibility: hidden !important; height: 0; }
 
-    /* Contenedor Ultra Compacto */
+    /* Contenedor: Menos padding arriba para ganar espacio */
     .main .block-container {
         max-width: 100% !important;
-        padding: 0.5rem 4% 20px 4% !important;
+        padding: 0.5rem 4% 100px 4% !important; /* 100px abajo es suficiente ahora */
     }
 
-    /* Título reducido y pegado arriba */
+    /* Título Ultra Compacto */
     .header-title {
         text-align: center;
         color: #E9EDEF;
-        font-size: 1.2rem;
+        font-size: 1rem;
         font-weight: 600;
-        margin-bottom: 10px;
+        margin-bottom: 5px;
+        opacity: 0.8;
     }
 
-    /* Burbujas de Chat Animadas */
-    @keyframes slideIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
+    /* Burbujas de Chat WhatsApp Style */
     .bubble {
-        padding: 12px 16px;
-        border-radius: 18px;
-        margin-bottom: 8px;
-        max-width: 85%;
-        animation: slideIn 0.3s ease-out;
-        position: relative;
-        line-height: 1.3;
+        padding: 10px 14px;
+        border-radius: 15px;
+        margin-bottom: 5px;
+        max-width: 90%;
+        line-height: 1.2;
+        animation: fadeIn 0.3s ease;
     }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-    .bubble-me {
-        background-color: #005C4B; /* Verde WhatsApp Dark */
-        color: #E9EDEF;
-        border-bottom-left-radius: 4px;
-        border-left: 4px solid #00A884;
-    }
+    .bubble-me { background-color: #005C4B; color: #E9EDEF; border-left: 4px solid #00A884; }
+    .bubble-ex { background-color: #202C33; color: #E9EDEF; border-right: 4px solid #FF3B30; }
 
-    .bubble-ex {
-        background-color: #202C33; /* Gris WhatsApp Dark */
-        color: #E9EDEF;
-        border-bottom-right-radius: 4px;
-        border-right: 4px solid #FF3B30;
-    }
+    .trad-text { font-size: 1rem; font-weight: 600; }
+    .orig-text { font-size: 0.7rem; opacity: 0.5; }
 
-    .trad-text { font-size: 1.1rem; font-weight: 600; display: block; }
-    .orig-text { font-size: 0.75rem; opacity: 0.6; display: block; margin-bottom: 4px; }
-
-    /* Controles Flotantes a la Derecha */
+    /* Micro-Contenedores de Micrófono */
     .mic-container {
         position: relative;
-        height: 85px;
-        margin-bottom: 10px;
+        height: 70px; /* Reducido de 85px */
+        margin-bottom: 5px;
         display: flex;
         align-items: center;
     }
 
+    /* Botones más pequeños para mobile */
     .stButton > button {
         border-radius: 50% !important;
-        width: 65px !important;
-        height: 65px !important;
+        width: 55px !important; /* Reducido para ganar aire */
+        height: 55px !important;
         border: none !important;
         position: absolute !important;
         right: 0;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-        transition: transform 0.2s;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.5);
     }
     
-    .stButton > button:active { transform: scale(0.9); }
-
-    button[key="mic_ar"] { background-color: #00A884 !important; } /* Verde */
-    button[key="mic_ex"] { background-color: #FF3B30 !important; } /* Rojo */
+    button[key="mic_ar"] { background-color: #00A884 !important; }
+    button[key="mic_ex"] { background-color: #FF3B30 !important; }
 
     .label-tag {
         position: absolute;
         right: 0;
-        top: -5px;
-        font-size: 0.65rem;
+        top: -8px;
+        font-size: 0.6rem;
         font-weight: bold;
-        text-transform: uppercase;
+        opacity: 0.9;
     }
 
-    /* Selectores más pequeños */
-    .stSelectbox { margin-bottom: -15px; }
-    div[data-baseweb="select"] { height: 35px !important; font-size: 0.8rem !important; }
+    /* Selectores en una línea para ahorrar espacio vertical */
+    div[data-baseweb="select"] { height: 32px !important; font-size: 0.75rem !important; }
+    
+    /* Ocultar barra de scroll de Streamlit pero permitir desplazamiento */
+    ::-webkit-scrollbar { width: 0px; background: transparent; }
     </style>
     """, unsafe_allow_html=True)
 
-# 3. Lógica
+# 3. Lógica (Manteniendo tu motor OpenAI)
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 config_idiomas = {
@@ -113,6 +102,7 @@ voces = {"Fem": "nova", "Masc": "onyx"}
 
 st.markdown("<div class='header-title'>Traductor Digital</div>", unsafe_allow_html=True)
 
+# Selectores en columnas para ahorrar 40px de altura
 c1, c2 = st.columns(2)
 with c1: idioma_sel = st.selectbox("", list(config_idiomas.keys()), label_visibility="collapsed")
 with c2: voz_sel = st.selectbox("", list(voces.keys()), label_visibility="collapsed")
@@ -135,7 +125,7 @@ def render_chat(audio_bytes, es_yo):
     css_class = "bubble-me" if es_yo else "bubble-ex"
     st.markdown(f"""
     <div class="bubble {css_class}">
-        <span class="orig-text">"{trans.text}"</span>
+        <span class="orig-text">"{trans.text}"</span><br>
         <span class="trad-text">{trad}</span>
     </div>
     """, unsafe_allow_html=True)
@@ -143,18 +133,20 @@ def render_chat(audio_bytes, es_yo):
 
 # --- INTERFAZ COMPACTA ---
 
-# Bloque YO
+# Bloque YO (Subido y achicado)
 st.markdown("<div class='mic-container'>", unsafe_allow_html=True)
-st.markdown("<span class='label-tag' style='color:#00A884;'>TU VOZ (ES)</span>", unsafe_allow_html=True)
+st.markdown("<span class='label-tag' style='color:#00A884;'>🇦🇷 YO</span>", unsafe_allow_html=True)
 audio_ar = mic_recorder(start_prompt="🎙️", stop_prompt="⌛", key='mic_ar')
-st.markdown("<div style='width:75%'>", unsafe_allow_html=True)
+st.markdown("<div style='width:80%'>", unsafe_allow_html=True)
 if audio_ar: render_chat(audio_ar['bytes'], True)
 st.markdown("</div></div>", unsafe_allow_html=True)
 
-# Bloque ÉL
+st.markdown("<hr style='border:0.1px solid #222; margin: 10px 0;'>", unsafe_allow_html=True)
+
+# Bloque ÉL (Subido para que entre siempre)
 st.markdown("<div class='mic-container'>", unsafe_allow_html=True)
-st.markdown(f"<span class='label-tag' style='color:#FF3B30;'>{info['label']}</span>", unsafe_allow_html=True)
+st.markdown(f"<span class='label-tag' style='color:#FF3B30;'>🌐 {info['label']}</span>", unsafe_allow_html=True)
 audio_ex = mic_recorder(start_prompt="🎙️", stop_prompt="⌛", key='mic_ex')
-st.markdown("<div style='width:75%'>", unsafe_allow_html=True)
+st.markdown("<div style='width:80%'>", unsafe_allow_html=True)
 if audio_ex: render_chat(audio_ex['bytes'], False)
 st.markdown("</div></div>", unsafe_allow_html=True)
