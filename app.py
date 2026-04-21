@@ -25,8 +25,10 @@ st.markdown("""
     .stApp { background-color: #0E1117; }
     .block-container {
         max-width: 100% !important;
-        padding: 1rem !important;
-        padding-top: 0.5rem !important;
+        padding-top: 1.5rem !important;
+        padding-bottom: 0.5rem !important;
+        padding-left: 1.2rem !important;
+        padding-right: 1.2rem !important;
     }
 
     /* Forzar botones a la derecha en Mobile (No se apilan) */
